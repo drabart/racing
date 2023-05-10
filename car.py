@@ -44,7 +44,6 @@ class Car:
         # print(2, self.velocity)
 
         # print(self.center)
-        # print(self.pp_position)
 
         if self.prev_frame_collision == 2:
             print("bum")
@@ -52,9 +51,9 @@ class Car:
             self.acceleration = [0, 0]
             self.rotation_velocity = 0
             self.rotation_acceleration = 0
-            self.center = deepcopy(self.pp_position)
+            self.center, self.angle = deepcopy(self.p_position)
         else:
-            self.center = deepcopy(self.pp_position)
+            self.center, self.angle = deepcopy(self.p_position)
             self.prev_frame_collision = 3
 
     def check_collisions(self, lines):
@@ -82,8 +81,7 @@ class Car:
                 self._handle_collision(intersection, line, angle, intersection_number)
                 return
 
-        self.pp_position = deepcopy(self.p_position)
-        self.p_position = deepcopy(self.center)
+        self.p_position = deepcopy((self.center, self.angle))
 
     def check_checkpoints(self, lines):
         points = self.get_points()
@@ -153,7 +151,6 @@ class Car:
             self.prev_frame_collision -= 1
 
         # print(self.center)
-        # print(self.pp_position)
 
         if is_accelerating:
             # assuming front-wheel drive
@@ -193,7 +190,7 @@ class Car:
         elif breaking or (abs(self.acceleration[0]) < 0.01 and abs(self.acceleration[1]) < 0.01):
             self.velocity = [0.0, 0.0]
 
-        print(self.rotation_velocity)
+        # print(self.rotation_velocity)
 
         # introduce rotation friction
         # scale it with speed, tire_angle and rotation velocity
@@ -267,8 +264,7 @@ class Car:
 
         # position and movement variables
         self.center = center
-        self.p_position = center
-        self.pp_position = center
+        self.p_position = (center, 0)
         self.angle = angle
         self.tire_angle = 0.0
         self.velocity = [0.0, 0.0]
