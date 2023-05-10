@@ -28,8 +28,8 @@ class App(tk.Tk):
         # set the position of the window to the center of the screen
         self.geometry(f'{self.window_width}x{self.window_height}+{center_x}+{center_y}')
 
-        self.grid_columnconfigure(0, weight=2)
-        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=2, minsize=1000)
+        self.grid_columnconfigure(1, weight=1, minsize=500)
 
         self.grid_rowconfigure(0, weight=1)
 
