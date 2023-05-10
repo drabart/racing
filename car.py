@@ -193,14 +193,16 @@ class Car:
         elif breaking or (abs(self.acceleration[0]) < 0.01 and abs(self.acceleration[1]) < 0.01):
             self.velocity = [0.0, 0.0]
 
+        print(self.rotation_velocity)
+
         # introduce rotation friction
         # scale it with speed, tire_angle and rotation velocity
         if self.rotation_velocity > 0.001:
             self.rotation_acceleration -= drag_force / self._mass * (math.cos(self.tire_angle) + 1) * 1.2 * \
-                                          math.pow(abs(self.rotation_velocity), 0.2)
+                                          abs(self.rotation_velocity)
         elif self.rotation_velocity < -0.001:
             self.rotation_acceleration += drag_force / self._mass * (math.cos(self.tire_angle) + 1) * 1.2 * \
-                                          math.pow(abs(self.rotation_velocity), 0.2)
+                                          abs(self.rotation_velocity)
         # stop rotation completely if it's too slow
         else:
             if abs(self.rotation_acceleration) < 0.999:
