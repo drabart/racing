@@ -14,6 +14,9 @@ class App(tk.Tk):
 
         self.title("Maze")
 
+        self.style = ttk.Style(self)
+        self.style.configure("Bigger.TLabel", font=("Helvetica", 20))
+
         # get the screen dimension
         self.screen_width = self.winfo_screenwidth()
         self.screen_height = self.winfo_screenheight()
@@ -41,6 +44,9 @@ class App(tk.Tk):
 
     def draw_car(self, car):
         self.canvas_frame.draw_car(car)
+
+    def draw_timer(self):
+        self.canvas_frame.draw_timer()
 
 
 class CanvasFrame(tk.Frame):
@@ -109,9 +115,19 @@ class CanvasFrame(tk.Frame):
                                                width=2, fill="#4288f7")
         self.to_remove.append(line_id)
 
+    def draw_timer(self):
+        if self.timer_id is not None:
+            self.canvas.delete(self.timer_id)
+            self.timer_id = None
+
+        if self.timer != -1:
+            self.timer_id = self.canvas.create_text((self.canvas_width / 2, self.canvas_height / 2),
+                                                    text=str(self.timer), font=("Helvetica", 40))
+
     def __init__(self, master, **kwargs):
         tk.Frame.__init__(self, master, **kwargs)
 
+        self.timer_id = None
         self.to_remove = []
         self.line_id = None
         self.car_id = None
@@ -120,6 +136,7 @@ class CanvasFrame(tk.Frame):
         self.p = None
         self.maze_width = None
         self.maze_height = None
+        self.timer = -1
 
         self.canvas = tk.Canvas(self, width=self.canvas_width, height=self.canvas_height, bg='#9af48d')
         self.canvas.pack(anchor=tk.CENTER, expand=True)
@@ -136,10 +153,28 @@ class ButtonFrame(tk.Frame):
         self.grid_rowconfigure(2, weight=1)
         self.grid_rowconfigure(3, weight=1)
         self.grid_rowconfigure(4, weight=1)
+        self.grid_rowconfigure(5, weight=1)
+        self.grid_rowconfigure(6, weight=1)
+        self.grid_rowconfigure(7, weight=1)
+        self.grid_rowconfigure(8, weight=1)
+        self.grid_rowconfigure(9, weight=1)
 
         restart_button = ttk.Button(self, text="Restart", command=restart_func)
-        restart_button.grid(column=0, row=0)
+        restart_button.grid(column=0, row=0, sticky='NSWE')
 
         self.vel = tk.StringVar(value=0)
-        vel_meter = ttk.Label(self, textvariable=self.vel)
+        vel_meter = ttk.Label(self, textvariable=self.vel, style="Bigger.TLabel")
         vel_meter.grid(column=0, row=1)
+
+        self.time = tk.StringVar(value=0)
+        time_meter = ttk.Label(self, textvariable=self.time, style="Bigger.TLabel")
+        time_meter.grid(column=0, row=2)
+
+        self.checkpoints = tk.StringVar(value=0)
+        checkpoints_meter = ttk.Label(self, textvariable=self.checkpoints, style="Bigger.TLabel")
+        checkpoints_meter.grid(column=0, row=3)
+
+        self.top_time = None
+        self.top_time_var = tk.StringVar(value="Top Time: None")
+        top_time_meter = ttk.Label(self, textvariable=self.top_time_var, style="Bigger.TLabel")
+        top_time_meter.grid(column=0, row=4)

@@ -2,6 +2,7 @@ from gui import *
 from track import Track
 from car import Car
 import math
+import time
 # from agent import *
 
 
@@ -50,19 +51,35 @@ class Master:
     track_start = ((6, 4), (7, 4))
     track = Track(track_width, track_height, track_tiles, track_boundaries, track_checkpoints, track_start)
     car = None
+    start_time = 0
 
-    def restart_race(self):
+    def _restart_race(self, event=None):
         print("Restarting race")
+        self.start_time = 0
+        self.free_car = False
         self.car = Car([6.5, 13.0 / 3.0], math.pi / 2.0)
         self.root.draw_track(self.track)
         self.root.draw_car(self.car)
+
+        self._timer(0)
         print("Race Restarted")
+
+    def _timer(self, seconds):
+        if seconds == 3:
+            self.free_car = True
+            self.start_time = time.time()
+            self.root.canvas_frame.timer = -1
+        else:
+            self.root.canvas_frame.timer = 3 - seconds
+            self.root.after(1000, self._timer, seconds + 1)
 
     def _set_bindings(self):
         for char in ["w", "s", "a", "d", "r"]:
             self.root.bind("<KeyPress-%s>" % char, self._pressed)
             self.root.bind("<KeyRelease-%s>" % char, self._released)
             self.pressed[char] = False
+
+        self.root.bind("q", self._restart_race)
 
     def _pressed(self, event):
         self.pressed[event.char] = True
@@ -71,7 +88,7 @@ class Master:
         self.pressed[event.char] = False
 
     def _animate(self):
-        # update car
+        # handle inputs
         is_accelerating = False
         tire_change = 0
         breaking = 0
@@ -86,23 +103,49 @@ class Master:
             breaking = 1
         if self.pressed["r"]:
             reverse = 1
-        self.car.update(10 / 1000, tire_change, is_accelerating, breaking, reverse)
+
+        # update car if not frozen
+        if self.free_car:
+            self.car.update(10 / 1000, tire_change, is_accelerating, breaking, reverse)
+            self.car.check_collisions(self.track.boundaries)
+
+        self.car.check_checkpoints(self.track.checkpoints)
+        if self.car.check_finish(self.track.start):
+            finish_time = round(time.time() - self.start_time, 3)
+            if self.root.button_frame.top_time is None or self.root.button_frame.top_time > finish_time:
+                self.root.button_frame.top_time = finish_time
+                self.root.button_frame.top_time_var.set("Top Time: " + str(finish_time))
+            self.start_time = time.time()
+
+        # gui render
         self.root.draw_car(self.car)
-        self.car.check_collisions(self.track_boundaries)
+        self.root.draw_timer()
 
         # update gui
-        self.root.button_frame.vel.set(round(self.car.get_vel(), 3))
+        vel_str = str(round(self.car.get_vel(), 3))
+        self.root.button_frame.vel.set("Velocity: " + vel_str + "0" * (5 - len(vel_str)))
 
+        time_str = "0.0"
+        if self.start_time != 0:
+            time_str = str(round(time.time() - self.start_time, 3))
+        self.mx_time_str = max(self.mx_time_str, len(time_str))
+        self.root.button_frame.time.set("Time: " + time_str + "0" * (self.mx_time_str - len(time_str)))
+
+        self.root.button_frame.checkpoints.set("Checkpoints: " + str(self.car.next_checkpoint))
+
+        # schedule next frame
         self.root.after(10, self._animate)
 
     def __init__(self):
         # pass arguments and function names for buttons to work
+        self.mx_time_str = 5
+        self.free_car = False
         self.pressed = {}
-        self.root = App(self.restart_race)
+        self.root = App(self._restart_race)
         # run root
         self._set_bindings()
 
-        self.restart_race()
+        self._restart_race()
 
         self._animate()
         self.root.mainloop()

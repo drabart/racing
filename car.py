@@ -52,9 +52,10 @@ class Car:
             self.acceleration = [0, 0]
             self.rotation_velocity = 0
             self.rotation_acceleration = 0
-
-        self.center = deepcopy(self.pp_position)
-        self.prev_frame_collision = 3
+            self.center = deepcopy(self.pp_position)
+        else:
+            self.center = deepcopy(self.pp_position)
+            self.prev_frame_collision = 3
 
     def check_collisions(self, lines):
         points = self.get_points()
@@ -83,6 +84,37 @@ class Car:
 
         self.pp_position = deepcopy(self.p_position)
         self.p_position = deepcopy(self.center)
+
+    def check_checkpoints(self, lines):
+        points = self.get_points()
+        # print(1, self.next_checkpoint, len(lines))
+        if self.next_checkpoint < len(lines):
+            for i in range(4):
+                car_line = (points[i], points[(i + 1) % 4])
+
+                # print(2, self.next_checkpoint, len(lines))
+                intersection, angle = self.line_intersection(car_line, lines[self.next_checkpoint])
+                if intersection is not None:
+                    self.next_checkpoint += 1
+                    return
+        else:
+            self.finished_checkpoints = True
+
+    def check_finish(self, finish):
+        if not self.finished_checkpoints:
+            return False
+
+        points = self.get_points()
+
+        for i in range(4):
+            car_line = (points[i], points[(i + 1) % 4])
+            intersection, angle = self.line_intersection(car_line, finish)
+            if intersection is not None:
+                self.next_checkpoint = 0
+                self.finished_checkpoints = False
+                return True
+
+        return False
 
     @staticmethod
     def line_intersection(line1, line2):
@@ -115,6 +147,7 @@ class Car:
         else:
             return None, None
 
+    # overcomplicated function for updating car physics
     def update(self, dt, tire_change, is_accelerating, breaking, reverse):
         if self.prev_frame_collision > 0:
             self.prev_frame_collision -= 1
@@ -217,14 +250,20 @@ class Car:
         self._length = 1.0 / 2.5  # tiles
         self._width = 1.0 / 5.0  # tiles
 
+        # movement constants
         self._engine_force = 4000  # Nm
         self._break_force = 3000  # N
         self._friction_coefficient = 1.2
         self._drag_coefficient = 100
         self._wheel_max_force = 5000
+        self._mass = 2000
+        magic_constant = 20
+        self._inertia = self._mass / 12 * (self._length * self._length + self._width * self._width) * magic_constant
 
+        # controls constants
         self._steer = 5
 
+        # position and movement variables
         self.center = center
         self.p_position = center
         self.pp_position = center
@@ -234,12 +273,13 @@ class Car:
         self.acceleration = [0.0, 0.0]
         self.rotation_velocity = 0.0
         self.rotation_acceleration = 0.0
+
+        # collision helper variable
         self.prev_frame_collision = 0
 
+        # gui variable
         self.velocity_direction = 0.0
 
-        self._mass = 2000
-        magic_constant = 20
-        self._inertia = self._mass / 12 * (self._length * self._length + self._width * self._width) * magic_constant
-
-
+        # track variables
+        self.next_checkpoint = 0
+        self.finished_checkpoints = False
