@@ -48,6 +48,11 @@ class App(tk.Tk):
     def draw_timer(self):
         self.canvas_frame.draw_timer()
 
+    def draw_rays(self, angles, lines, car):
+        for angle in angles:
+            line = car.ray_cast(angle, lines)
+            self.canvas_frame.draw_ray(line)
+
 
 class CanvasFrame(tk.Frame):
     canvas_width = 804
@@ -89,6 +94,7 @@ class CanvasFrame(tk.Frame):
                                 width=4, fill="#fc3b1e")
 
     def draw_car(self, car):
+        # to draw nice static lines (boundaries) everything is shifted by self.p (only in render)
         for rm in self.to_remove:
             self.canvas.delete(rm)
         self.to_remove = []
@@ -98,7 +104,11 @@ class CanvasFrame(tk.Frame):
                    self.p + car_points[i][1] * self.tile_height)
                    for i in range(len(car_points))]
 
-        car_id = self.canvas.create_polygon(points)
+        car_id = self.canvas.create_polygon(points, fill="#c10000")
+        self.to_remove.append(car_id)
+        car_id = self.canvas.create_oval(self.p + car.center[0] * self.tile_width - 10, self.p + car.center[1] * self.tile_height - 10,
+                                         self.p + car.center[0] * self.tile_width + 10, self.p + car.center[1] * self.tile_height + 10,
+                                         fill="#c1f000")
         self.to_remove.append(car_id)
 
         front_axle_middle = [(points[0][0] + points[3][0]) / 2, (points[0][1] + points[3][1]) / 2]
@@ -123,6 +133,12 @@ class CanvasFrame(tk.Frame):
         if self.timer != -1:
             self.timer_id = self.canvas.create_text((self.canvas_width / 2, self.canvas_height / 2),
                                                     text=str(self.timer), font=("Helvetica", 40))
+
+    def draw_ray(self, line):
+        line_id = self.canvas.create_line((self.p + line[0][0] * self.tile_width, self.p + line[0][1] * self.tile_height),
+                                          (self.p + line[1][0] * self.tile_width, self.p + line[1][1] * self.tile_height),
+                                          width=2, fill="black")
+        self.to_remove.append(line_id)
 
     def __init__(self, master, **kwargs):
         tk.Frame.__init__(self, master, **kwargs)
@@ -178,3 +194,7 @@ class ButtonFrame(tk.Frame):
         self.top_time_var = tk.StringVar(value="Top Time: None")
         top_time_meter = ttk.Label(self, textvariable=self.top_time_var, style="Bigger.TLabel")
         top_time_meter.grid(column=0, row=4)
+
+        self.fps = tk.StringVar(value="FPS: 0")
+        fps_meter = ttk.Label(self, textvariable=self.fps, style="Bigger.TLabel")
+        fps_meter.grid(column=0, row=9)
