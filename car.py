@@ -116,9 +116,18 @@ class Car:
 
     def ray_cast(self, angle, lines):
         angle += self.angle
-        line = ([0 + self.center[0], 0 + self.center[1]],
-                [10 * math.cos(angle) + self.center[0], -10 * math.sin(angle) + self.center[1]])
-        return line
+        ray = [[0 + self.center[0], 0 + self.center[1]],
+                [10 * math.cos(angle) + self.center[0], -10 * math.sin(angle) + self.center[1]]]
+
+        end_point = None
+        for line in lines:
+            intersection, angle = self.line_intersection(ray, line)
+            if intersection is not None:
+                if end_point is None or math.dist(self.center, intersection) < math.dist(self.center, end_point):
+                    end_point = intersection
+
+        ray[1] = end_point
+        return ray
 
     @staticmethod
     def line_intersection(line1, line2):
