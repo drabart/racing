@@ -6,13 +6,13 @@ import math
 
 
 class App(tk.Tk):
-    def __init__(self, restart_func):
+    def __init__(self, restart_func, train_func):
         super().__init__()
 
         self.window_width = 1500
         self.window_height = 1000
 
-        self.title("Maze")
+        self.title("Race")
 
         self.style = ttk.Style(self)
         self.style.configure("Bigger.TLabel", font=("Helvetica", 20))
@@ -36,7 +36,7 @@ class App(tk.Tk):
         self.canvas_frame = CanvasFrame(self)
         self.canvas_frame.grid(column=0, row=0, sticky='NSEW')
 
-        self.button_frame = ButtonFrame(self, restart_func)
+        self.button_frame = ButtonFrame(self, restart_func, train_func)
         self.button_frame.grid(column=1, row=0, sticky='NSEW')
 
     def draw_track(self, track):
@@ -52,6 +52,9 @@ class App(tk.Tk):
         for angle in angles:
             line = car.ray_cast(angle, lines)
             self.canvas_frame.draw_ray(line)
+
+    def clear(self):
+        self.canvas_frame.clear()
 
 
 class CanvasFrame(tk.Frame):
@@ -93,11 +96,14 @@ class CanvasFrame(tk.Frame):
                                 self.p+track.start[1][0] * self.tile_width, self.p+track.start[1][1] * self.tile_height,
                                 width=4, fill="#fc3b1e")
 
-    def draw_car(self, car):
-        # to draw nice static lines (boundaries) everything is shifted by self.p (only in render)
+    def clear(self):
         for rm in self.to_remove:
             self.canvas.delete(rm)
         self.to_remove = []
+
+    def draw_car(self, car):
+        # to draw nice static lines (boundaries) everything is shifted by self.p (only in render)
+        # print(car)
 
         car_points = car.get_points()
         points = [(self.p + car_points[i][0] * self.tile_width,
@@ -124,6 +130,7 @@ class CanvasFrame(tk.Frame):
         line_id = self.canvas.create_line(front_axle_middle[0], front_axle_middle[1], velocity_direction[0], velocity_direction[1],
                                                width=2, fill="#4288f7")
         self.to_remove.append(line_id)
+        # print(car_id)
 
     def draw_timer(self):
         if self.timer_id is not None:
@@ -159,7 +166,7 @@ class CanvasFrame(tk.Frame):
 
 
 class ButtonFrame(tk.Frame):
-    def __init__(self, master, restart_func, **kwargs):
+    def __init__(self, master, restart_func, train_func, **kwargs):
         tk.Frame.__init__(self, master, **kwargs)
 
         self.grid_columnconfigure(0, weight=1)
@@ -186,6 +193,7 @@ class ButtonFrame(tk.Frame):
         time_meter = ttk.Label(self, textvariable=self.time, style="Bigger.TLabel")
         time_meter.grid(column=0, row=2)
 
+        self.cp = 0
         self.checkpoints = tk.StringVar(value=0)
         checkpoints_meter = ttk.Label(self, textvariable=self.checkpoints, style="Bigger.TLabel")
         checkpoints_meter.grid(column=0, row=3)
@@ -194,6 +202,9 @@ class ButtonFrame(tk.Frame):
         self.top_time_var = tk.StringVar(value="Top Time: None")
         top_time_meter = ttk.Label(self, textvariable=self.top_time_var, style="Bigger.TLabel")
         top_time_meter.grid(column=0, row=4)
+
+        restart_button = ttk.Button(self, text="Train", command=train_func)
+        restart_button.grid(column=0, row=5, sticky='NSWE')
 
         self.fps = tk.StringVar(value="FPS: 0")
         fps_meter = ttk.Label(self, textvariable=self.fps, style="Bigger.TLabel")

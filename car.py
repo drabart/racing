@@ -23,6 +23,9 @@ class Car:
         return projection_vector, perpendicular_vector
 
     def _handle_collision(self, intersection_point, line, angle, contact_points):
+        # self.fitness -= 20
+        self.lifespan -= 40
+
         # print(self.prev_frame_collision)
         self.rotation_velocity = (2 / self._mass * math.dist(intersection_point, self.center) ** 2) * \
                                  self._inertia * (self.velocity[0] ** 2 + self.velocity[1] ** 2) * \
@@ -46,7 +49,7 @@ class Car:
         # print(self.center)
 
         if self.prev_frame_collision == 2:
-            print("bum")
+            # print("bum")
             self.velocity = [0, 0]
             self.acceleration = [0, 0]
             self.rotation_velocity = 0
@@ -86,17 +89,24 @@ class Car:
     def check_checkpoints(self, lines):
         points = self.get_points()
         # print(1, self.next_checkpoint, len(lines))
-        if self.next_checkpoint < len(lines):
-            for i in range(4):
-                car_line = (points[i], points[(i + 1) % 4])
+        if self.next_checkpoint >= len(lines):
+            self.finished_checkpoints = True
+            return
+
+        for i, checkpoint in enumerate(lines):
+            for j in range(4):
+                car_line = (points[j], points[(j + 1) % 4])
 
                 # print(2, self.next_checkpoint, len(lines))
-                intersection, angle = self.line_intersection(car_line, lines[self.next_checkpoint])
+                intersection, angle = self.line_intersection(car_line, lines[i])
                 if intersection is not None:
-                    self.next_checkpoint += 1
-                    return
-        else:
-            self.finished_checkpoints = True
+                    if self.next_checkpoint == i:
+                        self.next_checkpoint += 1
+                        self.fitness += 200 * (self.next_checkpoint / self.lap_time * 200)
+                        self.lifespan += 200
+                        return
+                    elif self.next_checkpoint - 1 != i:
+                        self.lifespan -= 20
 
     def check_finish(self, finish):
         if not self.finished_checkpoints:
@@ -110,6 +120,8 @@ class Car:
             if intersection is not None:
                 self.next_checkpoint = 0
                 self.finished_checkpoints = False
+                self.fitness += 1000 * (2000 / self.lap_time)
+                self.lifespan += 1000
                 return True
 
         return False
@@ -119,7 +131,7 @@ class Car:
         ray = [[0 + self.center[0], 0 + self.center[1]],
                 [10 * math.cos(angle) + self.center[0], -10 * math.sin(angle) + self.center[1]]]
 
-        end_point = None
+        end_point = [10 * math.cos(angle) + self.center[0], -10 * math.sin(angle) + self.center[1]]
         for line in lines:
             intersection, angle = self.line_intersection(ray, line)
             if intersection is not None:
@@ -162,6 +174,10 @@ class Car:
 
     # overcomplicated function for updating car physics
     def update(self, dt, tire_change, is_accelerating, breaking, reverse):
+        # update ai stuff
+        self.lifespan -= 1
+        self.lap_time += 1
+
         if self.prev_frame_collision > 0:
             self.prev_frame_collision -= 1
 
@@ -227,6 +243,13 @@ class Car:
         # apply the movement
         self.center[0] += self.velocity[0] * dt
         self.center[1] += self.velocity[1] * dt
+
+        # REWARD
+        self.fitness += math.dist([0, 0], [self.velocity[0] * dt, self.velocity[1] * dt])
+        if math.dist([0, 0], [self.velocity[0] * dt, self.velocity[1] * dt]) < 0.001:
+            self.lifespan -= 10
+        # print(math.dist([0, 0], [self.velocity[0] * dt, self.velocity[1] * dt]))
+
         self.velocity[0] += self.acceleration[0] * dt
         self.velocity[1] += self.acceleration[1] * dt
 
@@ -259,6 +282,28 @@ class Car:
                            -points[i][0] * math.sin(self.angle) + points[i][1] * math.cos(self.angle) + self.center[1])
             points[i] = translation
         return points
+
+    def get_data(self, boundaries, checkpoints, finish):
+        ray_angles = [-math.pi / 3, -math.pi / 6, 0, math.pi / 6, math.pi / 3]
+        inputs = []
+        for angle in ray_angles:
+            line = self.ray_cast(angle, boundaries)
+            inputs.append(math.dist(line[0], line[1]))
+        # inputs.append(self.rotation_velocity)
+        # inputs.append(self.velocity[0])
+        # inputs.append(self.velocity[1])
+        # inputs.append(self.center[0])
+        # inputs.append(self.center[1])
+        cp_angles = [-math.pi / 3, -math.pi / 6, 0, math.pi / 6, math.pi / 3]
+        if self.finished_checkpoints or self.next_checkpoint >= len(checkpoints):
+            for angle in cp_angles:
+                line = self.ray_cast(angle, [finish])
+                inputs.append(math.dist(line[0], line[1]))
+        else:
+            for angle in cp_angles:
+                line = self.ray_cast(angle, [checkpoints[self.next_checkpoint]])
+                inputs.append(math.dist(line[0], line[1]))
+        return inputs
 
     def __init__(self, center, angle):
         self._length = 1.0 / 2.5  # tiles
@@ -295,4 +340,10 @@ class Car:
 
         # track variables
         self.next_checkpoint = 0
+        self.lap_time = 0
         self.finished_checkpoints = False
+
+        # ai variables
+        self.lifespan = 3000
+        self.fitness = 0
+        self.dead = False
